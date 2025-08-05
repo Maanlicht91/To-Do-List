@@ -1,0 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Libertinus+Sans:ital,wght@0,400;0,700;1,400&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-title: "Bebas Neue", sans-serif;
+  --font-list: "Libertinus Sans", sans-serif;
+}
+
+.footer {
+  width: 100%;
+  text-align: center;
+  background-color: #333446;
+  color: white;
+  a {
+    text-decoration: none;
+    color: #e55050;
+  }
+}
