@@ -1,56 +1,86 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import TodoList from "./Todo-list";
+import { useReducer, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import TodoList from "./Todo-list";
+
+const reducer = (todos, action) => {
+  switch (action.type) {
+    case "add": {
+      const newTodo = {
+        id: action.id,
+        text: action.text,
+        isCompleted: false,
+      };
+      return [...todos, newTodo];
+    }
+    case "change": {
+      return todos.map((t) =>
+        t.id === action.id ? { ...t, text: action.text } : t
+      );
+    }
+    case "delete": {
+      return todos.filter((t) => t.id !== action.id);
+    }
+    case "toggle": {
+      return todos.map((t) => {
+        if (t.id === action.id) {
+          return { ...t, isCompleted: !t.isCompleted };
+        }
+        return t;
+      });
+    }
+    default: {
+      throw Error("Unknown action: " + action.type);
+    }
+  }
+};
+
+const getInitialTodos = () => {
+  const stored = localStorage.getItem("todos");
+  return stored ? JSON.parse(stored) : [];
+};
 
 export const Todo = () => {
-  const getInitialTodos = () => {
-    const stored = localStorage.getItem("todos");
-    return stored ? JSON.parse(stored) : [];
-  };
-
-  const [todoList, setTodoList] = useState(getInitialTodos); //-- useState is for managing state of todo list
-
+  const [todos, dispatch] = useReducer(reducer, undefined, getInitialTodos);
   const inputRef = useRef(); //-- for getting input directly
-
-  const add = useCallback(() => {
-    //-- useCallback is for caching function between re-renders until its dependencies change.
-
-    const inputText = inputRef.current.value.trim();
-
-    if (inputText === "") {
-      return null;
-    }
-
-    const newTodo = {
-      id: uuidv4(), //-- for getting random id
-      text: inputText,
-      isCompleted: false,
-    };
-
-    setTodoList((prev) => [...prev, newTodo]);
-
-    inputRef.current.value = "";
-  }, []);
-
-  const deleteTask = useCallback((id) => {
-    return setTodoList((prev) => prev.filter((item) => item.id !== id));
-  }, []);
-
-  const toggle = useCallback((id) => {
-    return setTodoList((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          return { ...item, isCompleted: !item.isCompleted };
-        }
-        return item;
-      })
-    );
-  }, []);
+  const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     //-- run code when components update
-    localStorage.setItem("todos", JSON.stringify(todoList));
-  }, [todoList]);
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [todos]);
+
+  const handleAddTodo = () => {
+    const inputText = inputRef.current?.value || "";
+    if (inputText.trim() === "") {
+      return;
+    }
+    if (editId) {
+      dispatch({ type: "change", id: editId, text: inputText });
+      setEditId(null);
+    } else {
+      dispatch({
+        type: "add",
+        id: uuidv4(), //-- for getting random id
+        text: inputText,
+      });
+    }
+    inputRef.current.value = "";
+  };
+
+  const handleDeleteTodo = (id) => {
+    return dispatch({
+      type: "delete",
+      id: id,
+    });
+  };
+
+  const handleChangeTodo = (id) => {
+    const todo = todos.find((t) => t.id === id);
+    if (todo) {
+      inputRef.current.value = todo.text;
+      setEditId(id);
+    }
+  };
 
   return (
     <div className="bg-white h-[650px] w-[500px] rounded-lg p-9">
@@ -76,23 +106,24 @@ export const Todo = () => {
           className="border-0 outline-none bg-[#748DAE] text-white rounded-lg w-[300px] h-[35px] p-2"
         ></input>
         <button
-          onClick={add}
+          onClick={handleAddTodo}
           className="border-0 cursor-pointer bg-[#FFBC4C] rounded-lg inline-block text-blue-400 h-9 p-2 font-semibold hover:bg-[#748DAE] hover:text-[#FFBC4C]"
         >
-          ADD +
+          {editId ? "UPDATE" : "ADD +"}
         </button>
       </div>
       {/*--------todo list----------*/}
       <div className="mt-6">
-        {todoList.map((item, index) => {
+        {todos.map((item) => {
           return (
             <TodoList
-              key={index}
+              key={item.id}
               text={item.text}
               id={item.id}
               isCompleted={item.isCompleted}
-              deleteTask={deleteTask}
-              toggle={toggle}
+              deleteTask={handleDeleteTodo}
+              changeTask={handleChangeTodo}
+              toggle={() => dispatch({ type: "toggle", id: item.id })}
             />
           );
         })}
