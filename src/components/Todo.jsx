@@ -1,38 +1,7 @@
 import { useReducer, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import TodoList from "./Todo-list";
-
-const reducer = (todos, action) => {
-  switch (action.type) {
-    case "add": {
-      const newTodo = {
-        id: action.id,
-        text: action.text,
-        isCompleted: false,
-      };
-      return [...todos, newTodo];
-    }
-    case "change": {
-      return todos.map((t) =>
-        t.id === action.id ? { ...t, text: action.text } : t
-      );
-    }
-    case "delete": {
-      return todos.filter((t) => t.id !== action.id);
-    }
-    case "toggle": {
-      return todos.map((t) => {
-        if (t.id === action.id) {
-          return { ...t, isCompleted: !t.isCompleted };
-        }
-        return t;
-      });
-    }
-    default: {
-      throw Error("Unknown action: " + action.type);
-    }
-  }
-};
+import { todoReducer } from "./todoReducer";
 
 const getInitialTodos = () => {
   const stored = localStorage.getItem("todos");
@@ -40,7 +9,7 @@ const getInitialTodos = () => {
 };
 
 export const Todo = () => {
-  const [todos, dispatch] = useReducer(reducer, undefined, getInitialTodos);
+  const [todos, dispatch] = useReducer(todoReducer, undefined, getInitialTodos);
   const inputRef = useRef(); //-- for getting input directly
   const [editId, setEditId] = useState(null);
 
@@ -55,11 +24,11 @@ export const Todo = () => {
       return;
     }
     if (editId) {
-      dispatch({ type: "change", id: editId, text: inputText });
+      dispatch({ type: "changed", id: editId, text: inputText });
       setEditId(null);
     } else {
       dispatch({
-        type: "add",
+        type: "added",
         id: uuidv4(), //-- for getting random id
         text: inputText,
       });
@@ -69,7 +38,7 @@ export const Todo = () => {
 
   const handleDeleteTodo = (id) => {
     return dispatch({
-      type: "delete",
+      type: "deleted",
       id: id,
     });
   };
@@ -123,7 +92,7 @@ export const Todo = () => {
               isCompleted={item.isCompleted}
               deleteTask={handleDeleteTodo}
               changeTask={handleChangeTodo}
-              toggle={() => dispatch({ type: "toggle", id: item.id })}
+              toggle={() => dispatch({ type: "toggled", id: item.id })}
             />
           );
         })}
